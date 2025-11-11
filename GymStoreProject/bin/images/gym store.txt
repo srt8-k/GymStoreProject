@@ -1,0 +1,213 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.ArrayList;
+
+class Product {
+    String name;
+    String imagePath;
+    double price;
+
+    public Product(String name, String imagePath, double price) {
+        this.name = name;
+        this.imagePath = imagePath;
+        this.price = price;
+    }
+}
+
+class CartItem {
+    Product product;
+    int quantity;
+
+    public CartItem(Product product, int quantity) {
+        this.product = product;
+        this.quantity = quantity;
+    }
+}
+
+public class GymStoreGUI {
+    Product[] products = {
+        new Product("Gym Shirt", "/images/sh.png", 60),
+        new Product("Protein Powder", "/images/protein.png", 250),
+        new Product("Vitamins", "/images/v.png", 35)
+    };
+
+    ArrayList<CartItem> cart = new ArrayList<>();
+
+    public void createAndShowGUI() {
+        JFrame frame = new JFrame("Gym Store");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(800, 600);
+        frame.setLayout(new BorderLayout());
+
+        JPanel productPanel = new JPanel(new GridLayout(0, 3, 10, 10));
+
+        for (Product product : products) {
+            JPanel panel = new JPanel(new BorderLayout());
+
+            // Load image using getResource() method
+            ImageIcon icon = loadImageIcon(product.imagePath);
+            if (icon == null) {
+                System.out.println("Image not found for product: " + product.name);
+                continue;
+            }
+
+            Image img = icon.getImage().getScaledInstance(150, 150, Image.SCALE_SMOOTH);
+            JLabel picLabel = new JLabel(new ImageIcon(img));
+
+            JLabel nameLabel = new JLabel(product.name + " - SAR" + product.price, JLabel.CENTER);
+
+            JButton detailsButton = new JButton("View Details");
+            detailsButton.addActionListener(e -> {
+                JOptionPane.showMessageDialog(frame,
+                        "Product: " + product.name + "\nPrice: SAR" + product.price,
+                        "Product Details",
+                        JOptionPane.INFORMATION_MESSAGE,
+                        new ImageIcon(img));
+            });
+
+            JButton addToCartButton = new JButton("Add to Cart");
+            addToCartButton.addActionListener(e -> {
+                String input = JOptionPane.showInputDialog("Enter quantity:");
+                try {
+                    int quantity = Integer.parseInt(input);
+                    if (quantity <= 0) throw new NumberFormatException();
+                    addToCart(product, quantity);
+                    JOptionPane.showMessageDialog(frame,
+                            quantity + " x " + product.name + " added to cart!",
+                            "Added",
+                            JOptionPane.INFORMATION_MESSAGE);
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(frame, "Invalid quantity.", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            });
+
+            JPanel buttonPanel = new JPanel(new GridLayout(2, 1));
+            buttonPanel.add(detailsButton);
+            buttonPanel.add(addToCartButton);
+
+            panel.add(picLabel, BorderLayout.CENTER);
+            panel.add(nameLabel, BorderLayout.NORTH);
+            panel.add(buttonPanel, BorderLayout.SOUTH);
+
+            productPanel.add(panel);
+        }
+
+        JScrollPane scrollPane = new JScrollPane(productPanel);
+        frame.add(scrollPane, BorderLayout.CENTER);
+
+        JButton viewCartButton = new JButton("View Cart");
+        viewCartButton.addActionListener(e -> showCart(frame));
+
+        frame.add(viewCartButton, BorderLayout.SOUTH);
+        frame.setVisible(true);
+    }
+
+    private void addToCart(Product product, int quantity) {
+        for (CartItem item : cart) {
+            if (item.product.name.equals(product.name)) {
+                item.quantity += quantity;
+                return;
+            }
+        }
+        cart.add(new CartItem(product, quantity));
+    }
+
+    private void showCart(JFrame parent) {
+        JFrame cartFrame = new JFrame("Your Cart");
+        cartFrame.setSize(400, 400);
+        cartFrame.setLayout(new BorderLayout());
+
+        DefaultListModel<String> model = new DefaultListModel<>();
+        JList<String> list = new JList<>(model);
+
+        for (CartItem item : cart) {
+            model.addElement(item.product.name + " x" + item.quantity + " ($" + item.product.price + ")");
+        }
+
+        JPanel buttonsPanel = new JPanel(new GridLayout(1, 3));
+
+        JButton removeButton = new JButton("Remove");
+        removeButton.addActionListener(e -> {
+            int selected = list.getSelectedIndex();
+            if (selected != -1) {
+                cart.remove(selected);
+                model.remove(selected);
+            }
+        });
+
+        JButton increaseButton = new JButton("+");
+        increaseButton.addActionListener(e -> {
+            int selected = list.getSelectedIndex();
+            if (selected != -1) {
+                cart.get(selected).quantity++;
+                updateCartModel(model);
+            }
+        });
+
+        JButton decreaseButton = new JButton("-");
+        decreaseButton.addActionListener(e -> {
+            int selected = list.getSelectedIndex();
+            if (selected != -1) {
+                CartItem item = cart.get(selected);
+                if (item.quantity > 1) {
+                    item.quantity--;
+                } else {
+                    cart.remove(selected);
+                }
+                updateCartModel(model);
+            }
+        });
+
+        buttonsPanel.add(removeButton);
+        buttonsPanel.add(increaseButton);
+        buttonsPanel.add(decreaseButton);
+
+        JButton checkoutButton = new JButton("Checkout");
+        checkoutButton.addActionListener(e -> choosePayment(parent));
+
+        cartFrame.add(new JScrollPane(list), BorderLayout.CENTER);
+        cartFrame.add(buttonsPanel, BorderLayout.NORTH);
+        cartFrame.add(checkoutButton, BorderLayout.SOUTH);
+        cartFrame.setVisible(true);
+    }
+
+    private void updateCartModel(DefaultListModel<String> model) {
+        model.clear();
+        for (CartItem item : cart) {
+            model.addElement(item.product.name + " x" + item.quantity + " ($" + item.product.price + ")");
+        }
+    }
+
+    private void choosePayment(JFrame parent) {
+        String[] options = {"Network", "Apple Pay", "Cash"};
+        String method = (String) JOptionPane.showInputDialog(parent,
+                "Choose payment method:",
+                "Payment",
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                options,
+                options[0]);
+
+        if (method != null) {
+            JOptionPane.showMessageDialog(parent,
+                    "Payment method: " + method + "\nThank you for your purchase!",
+                    "Order Confirmed",
+                    JOptionPane.INFORMATION_MESSAGE);
+            cart.clear();
+        }
+    }
+
+    // Method to load image using relative path inside resources folder
+    private ImageIcon loadImageIcon(String imagePath) {
+        ImageIcon icon = new ImageIcon(getClass().getResource(imagePath));
+        if (icon.getImageLoadStatus() == MediaTracker.ERRORED) {
+            return null;  // Return null if image loading failed
+        }
+        return icon;
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new GymStoreGUI().createAndShowGUI());
+    }
+}

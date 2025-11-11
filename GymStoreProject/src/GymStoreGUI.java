@@ -1,0 +1,377 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+class Product {
+    String name;
+    String imagePath;
+    double price;
+    String category;
+
+    public Product(String name, String imagePath, double price, String category) {
+        this.name = name;
+        this.imagePath = imagePath;
+        this.price = price;
+        this.category = category;
+    }
+}
+
+class CartItem {
+    Product product;
+    int quantity;
+
+    public CartItem(Product product, int quantity) {
+        this.product = product;
+        this.quantity = quantity;
+    }
+
+    public double getTotalPrice() {
+        return product.price * quantity;
+    }
+}
+
+public class GymStoreGUI {
+    List<Product> allProducts = new ArrayList<>();
+    ArrayList<CartItem> cart = new ArrayList<>();
+    JFrame frame;
+    JPanel productPanel;
+
+    public GymStoreGUI() {
+        // تحميل المنتجات من قاعدة البيانات عند بداية التطبيق
+        allProducts = fetchProductsFromDatabase();
+    }
+
+    // جلب المنتجات من قاعدة البيانات
+    private List<Product> fetchProductsFromDatabase() {
+        List<Product> products = new ArrayList<>();
+        try {
+            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/gym", "root", "srt8-k");
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT * FROM products");
+
+            while (rs.next()) {
+                String name = rs.getString("name");
+                String imagePath = rs.getString("image_path");
+                double price = rs.getDouble("price");
+                String category = rs.getString("category");
+
+                products.add(new Product(name, imagePath, price, category));
+            }
+
+            conn.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Failed to load products from database.");
+        }
+
+        return products;
+    }
+
+    public void createAndShowGUI() {
+        frame = new JFrame("Gym Store");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(800, 600);
+        frame.setLayout(new BorderLayout());
+        frame.getContentPane().setBackground(Color.decode("#e8f0fe"));
+
+        JTextField searchField = new JTextField();
+        searchField.addKeyListener(new KeyAdapter() {
+            public void keyReleased(KeyEvent e) {
+                filterProducts(searchField.getText());
+            }
+        });
+
+        frame.add(searchField, BorderLayout.NORTH);
+
+        productPanel = new JPanel();
+        productPanel.setLayout(new GridLayout(0, 3, 10, 10));
+        displayProducts(allProducts);
+
+        JScrollPane scrollPane = new JScrollPane(productPanel);
+        frame.add(scrollPane, BorderLayout.CENTER);
+
+        JPanel categoryPanel = new JPanel(new FlowLayout());
+        JButton clothingButton = new JButton("Clothing");
+        clothingButton.addActionListener(e -> filterByCategory("Clothing"));
+
+        JButton supplementsButton = new JButton("Supplements");
+        supplementsButton.addActionListener(e -> filterByCategory("Supplements"));
+
+        JButton equipmentButton = new JButton("Exercise Equipment");
+        equipmentButton.addActionListener(e -> filterByCategory("Exercise Equipment"));
+
+        categoryPanel.add(clothingButton);
+        categoryPanel.add(supplementsButton);
+        categoryPanel.add(equipmentButton);
+        frame.add(categoryPanel, BorderLayout.SOUTH);
+
+        JButton viewCartButton = new JButton("View Cart");
+        viewCartButton.addActionListener(e -> showCart());
+
+        frame.add(viewCartButton, BorderLayout.WEST);
+        frame.setVisible(true);
+    }
+
+    private void displayProducts(List<Product> products) {
+        productPanel.removeAll();
+        productPanel.setBackground(Color.decode("#f5f5f5"));
+
+        for (Product product : products) {
+            JPanel p = new JPanel(new BorderLayout());
+            p.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+            p.setBackground(Color.WHITE);
+            p.setPreferredSize(new Dimension(200, 250));
+
+            ImageIcon icon = loadImageIcon(product.imagePath);
+            if (icon == null) {
+                continue;
+            }
+
+            Image img = icon.getImage().getScaledInstance(130, 130, Image.SCALE_SMOOTH);
+            JLabel picLabel = new JLabel(new ImageIcon(img), JLabel.CENTER);
+
+            JLabel nameLabel = new JLabel("<html><center>" + product.name + "<br>SAR " + product.price + "</center></html>", JLabel.CENTER);
+            nameLabel.setFont(new Font("Arial", Font.BOLD, 14));
+            nameLabel.setForeground(Color.DARK_GRAY);
+
+            JButton detailsButton = new JButton("View Details");
+            JButton addToCartButton = new JButton("Add to Cart");
+            detailsButton.setBackground(new Color(220, 220, 220));
+            addToCartButton.setBackground(new Color(144, 238, 144));
+
+            detailsButton.addActionListener(e -> {
+                JOptionPane.showMessageDialog(null,
+                        "Product: " + product.name + "\nPrice: SAR" + product.price,
+                        "Product Details",
+                        JOptionPane.INFORMATION_MESSAGE,
+                        new ImageIcon(img));
+            });
+
+            addToCartButton.addActionListener(e -> {
+                JDialog quantityDialog = new JDialog(frame, "Select Quantity", true);
+                quantityDialog.setSize(300, 150);
+                quantityDialog.setLayout(new BorderLayout());
+                quantityDialog.setLocationRelativeTo(frame);
+
+                JPanel centerPanel = new JPanel(new FlowLayout());
+
+                JButton minusButton = new JButton("-");
+                JButton plusButton = new JButton("+");
+                JLabel quantityLabel = new JLabel("1", JLabel.CENTER);
+                quantityLabel.setFont(new Font("Arial", Font.BOLD, 18));
+
+                final int[] quantity = {1};
+
+                minusButton.addActionListener(ev -> {
+                    if (quantity[0] > 1) {
+                        quantity[0]--;
+                        quantityLabel.setText(String.valueOf(quantity[0]));
+                    }
+                });
+
+                plusButton.addActionListener(ev -> {
+                    quantity[0]++;
+                    quantityLabel.setText(String.valueOf(quantity[0]));
+                });
+
+                centerPanel.add(minusButton);
+                centerPanel.add(quantityLabel);
+                centerPanel.add(plusButton);
+
+                JButton confirmButton = new JButton("Add to Cart");
+                confirmButton.setBackground(new Color(144, 238, 144));
+
+                confirmButton.addActionListener(ev -> {
+                    addToCart(product, quantity[0]);
+                    JOptionPane.showMessageDialog(frame,
+                            quantity[0] + " x " + product.name + " added to cart!",
+                            "Added",
+                            JOptionPane.INFORMATION_MESSAGE);
+                    quantityDialog.dispose();
+                });
+
+                quantityDialog.add(centerPanel, BorderLayout.CENTER);
+                quantityDialog.add(confirmButton, BorderLayout.SOUTH);
+                quantityDialog.setVisible(true);
+            });
+
+
+            JPanel buttonPanel = new JPanel(new GridLayout(2, 1, 5, 5));
+            buttonPanel.setBackground(Color.WHITE);
+            buttonPanel.add(detailsButton);
+            buttonPanel.add(addToCartButton);
+
+            p.add(picLabel, BorderLayout.CENTER);
+            p.add(nameLabel, BorderLayout.NORTH);
+            p.add(buttonPanel, BorderLayout.SOUTH);
+
+            productPanel.add(p);
+        }
+
+        productPanel.revalidate();
+        productPanel.repaint();
+    }
+
+    private void filterByCategory(String category) {
+        List<Product> filteredProducts = new ArrayList<>();
+        for (Product product : allProducts) {
+            if (product.category.equals(category)) {
+                filteredProducts.add(product);
+            }
+        }
+        displayProducts(filteredProducts);
+    }
+
+    private void filterProducts(String query) {
+        List<Product> filteredProducts = new ArrayList<>();
+        for (Product product : allProducts) {
+            if (product.name.toLowerCase().contains(query.toLowerCase())) {
+                filteredProducts.add(product);
+            }
+        }
+        displayProducts(filteredProducts);
+    }
+
+    private void addToCart(Product product, int quantity) {
+        for (CartItem item : cart) {
+            if (item.product.name.equals(product.name)) {
+                item.quantity += quantity;
+                return;
+            }
+        }
+        cart.add(new CartItem(product, quantity));
+    }
+
+    private void showCart() {
+        JFrame cartFrame = new JFrame("Your Cart");
+        cartFrame.setSize(500, 500);
+        cartFrame.setLayout(new BorderLayout());
+
+        DefaultListModel<String> model = new DefaultListModel<>();
+        JList<String> list = new JList<>(model);
+        list.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        list.setBackground(Color.WHITE);
+
+        double totalPrice = 0;
+        for (CartItem item : cart) {
+            double itemTotalPrice = item.getTotalPrice();
+            totalPrice += itemTotalPrice;
+            model.addElement(item.product.name + " x" + item.quantity +
+                    " (SAR " + item.product.price + " each) - Total: SAR " + itemTotalPrice);
+        }
+
+        JLabel totalLabel = new JLabel("Total: SAR " + totalPrice, JLabel.CENTER);
+        totalLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+
+        JButton removeButton = new JButton("Remove");
+        removeButton.setBackground(Color.decode("#f28b82"));
+
+        JButton increaseButton = new JButton("+");
+        increaseButton.setBackground(Color.decode("#a7ffeb"));
+
+        JButton decreaseButton = new JButton("-");
+        decreaseButton.setBackground(Color.decode("#aecbfa"));
+
+        JButton clearButton = new JButton("Clear Cart");
+        clearButton.setBackground(Color.decode("#fbbc04"));
+
+        removeButton.addActionListener(e -> {
+            int selected = list.getSelectedIndex();
+            if (selected != -1) {
+                cart.remove(selected);
+                updateCartModel(model);
+            }
+        });
+
+        increaseButton.addActionListener(e -> {
+            int selected = list.getSelectedIndex();
+            if (selected != -1) {
+                cart.get(selected).quantity++;
+                updateCartModel(model);
+            }
+        });
+
+        decreaseButton.addActionListener(e -> {
+            int selected = list.getSelectedIndex();
+            if (selected != -1) {
+                CartItem item = cart.get(selected);
+                if (item.quantity > 1) {
+                    item.quantity--;
+                } else {
+                    cart.remove(selected);
+                }
+                updateCartModel(model);
+            }
+        });
+
+        clearButton.addActionListener(e -> {
+            cart.clear();
+            updateCartModel(model);
+            totalLabel.setText("Total: SAR 0");
+        });
+
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+        buttonPanel.add(removeButton);
+        buttonPanel.add(increaseButton);
+        buttonPanel.add(decreaseButton);
+        buttonPanel.add(clearButton);
+
+        JButton backButton = new JButton("Back to Store");
+        JButton checkoutButton = new JButton("Checkout");
+
+        backButton.setBackground(Color.LIGHT_GRAY);
+        checkoutButton.setBackground(Color.GREEN);
+        backButton.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        checkoutButton.setFont(new Font("Segoe UI", Font.BOLD, 13));
+
+        backButton.addActionListener(e -> {
+            cartFrame.dispose();
+            frame.setVisible(true);
+        });
+
+        checkoutButton.addActionListener(e -> choosePayment());
+
+        JPanel bottomPanel = new JPanel(new BorderLayout());
+        bottomPanel.add(totalLabel, BorderLayout.NORTH);
+        bottomPanel.add(buttonPanel, BorderLayout.CENTER);
+        bottomPanel.add(backButton, BorderLayout.SOUTH);
+        bottomPanel.add(checkoutButton, BorderLayout.EAST);
+
+        cartFrame.add(new JScrollPane(list), BorderLayout.CENTER);
+        cartFrame.add(bottomPanel, BorderLayout.SOUTH);
+        cartFrame.setVisible(true);
+    }
+
+    private void updateCartModel(DefaultListModel<String> model) {
+        model.clear();
+        double totalPrice = 0;
+        for (CartItem item : cart) {
+            double itemTotalPrice = item.getTotalPrice();
+            totalPrice += itemTotalPrice;
+            model.addElement(item.product.name + " x" + item.quantity +
+                    " (SAR " + item.product.price + " each) - Total: SAR " + itemTotalPrice);
+        }
+    }
+
+    private void choosePayment() {
+        // your payment choice logic goes here
+    }
+
+    private ImageIcon loadImageIcon(String imagePath) {
+        try {
+            return new ImageIcon(getClass().getResource(imagePath));
+        } catch (Exception e) {
+            return null; // If image cannot be loaded
+        }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            GymStoreGUI storeGUI = new GymStoreGUI();
+            storeGUI.createAndShowGUI();
+        });
+    }
+}

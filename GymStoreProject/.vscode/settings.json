@@ -1,0 +1,56 @@
+{
+    "java.project.sourcePaths": ["src"],
+    "java.project.outputPath": "bin",
+    "java.project.referencedLibraries": [
+        "lib/**/*.jar",
+        "c:\\Users\\amria\\Documents\\javap\\j.p1\\lib\\mysql-connector-j-9.3.0.jar",
+        "c:\\Users\\amria\\Documents\\javap\\j.p1\\lib\\rs2xml.jar"
+    ],
+    "sqltools.connections": [
+        {
+            "mysqlOptions": {
+                "authProtocol": "default",
+                "enableSsl": "Disabled"
+            },
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 3306,
+            "driver": "MySQL",
+            "name": "my sql ",
+            "database": "books1",
+            "username": "root",
+            "password": "srt8-k",
+            "connectionTimeout": 30
+        },
+        {
+            "mysqlOptions": {
+                "authProtocol": "default",
+                "enableSsl": "Disabled"
+            },
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 3306,
+            "driver": "MySQL",
+            "name": "my sql",
+            "database": "books",
+            "username": "root",
+            "connectionTimeout": 30,
+            "askForPassword": true
+        },
+        {
+            "mysqlOptions": {
+                "authProtocol": "default",
+                "enableSsl": "Disabled"
+            },
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 3306,
+            "driver": "MySQL",
+            "name": "testg",
+            "database": "gym",
+            "username": "root",
+            "password": "srt8-k",
+            "connectionTimeout": 30
+        }
+    ]
+}
