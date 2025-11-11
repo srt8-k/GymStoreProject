@@ -1,18 +1,29 @@
-## Getting Started
+# Gym Store Management System (Java + MySQL)
 
-Welcome to the VS Code Java world. Here is a guideline to help you get started to write Java code in Visual Studio Code.
+A desktop application to manage a gym store including supplements, apparel, cart system, and multiple payment methods.
 
-## Folder Structure
+## ✅ Features
+- Display products (Gym Supplements, Clothes, etc)
+- Search & filter items
+- Add to cart / remove / update quantities
+- Multiple payment methods (Cash, Apple Pay, Network)
+- GUI using Java Swing
+- MySQL database backend
 
-The workspace contains two folders by default, where:
+## 🛠️ Tech Stack
+- Java (Swing GUI)
+- JDBC
+- MySQL Database
 
-- `src`: the folder to maintain sources
-- `lib`: the folder to maintain dependencies
+## 🎬 Screenshots
+(Add your screenshots here if available)
 
-Meanwhile, the compiled output files will be generated in the `bin` folder by default.
+## 📦 How to Run
+1. Import the project into NetBeans/IntelliJ
+2. Connect MySQL database
+3. Run the main class to launch GUI
 
-> If you want to customize the folder structure, open `.vscode/settings.json` and update the related settings there.
-
-## Dependency Management
-
-The `JAVA PROJECTS` view allows you to manage your dependencies. More details can be found [here](https://github.com/microsoft/vscode-java-dependency#manage-dependencies).
+## ✨ Future Improvements
+- Invoice printing
+- Barcode scanner support
+- Dashboard with analytics
